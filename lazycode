@@ -1,0 +1,15 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const lazyTexts = document.querySelectorAll('.lazy-text');
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const block = entry.target;
+                block.innerHTML = block.dataset.content;
+                block.classList.remove('lazy-text');
+                observer.unobserve(block);
+            }
+        });
+    });
+
+    lazyTexts.forEach(block => observer.observe(block));
+});
