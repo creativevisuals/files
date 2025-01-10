@@ -67,7 +67,7 @@ $(window).bind("load", function() {
                         var videoIframe = iframe.cloneNode();
                         // Sempre começamos com '?autoplay=1', e se houver playlist, adicionamos '&list=...'
                         // Assim não ficamos sem o '?'
-                        videoIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1${playlistParam}&rel=0`;
+                        videoIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
                         videoIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
                         videoContent.append(videoIframe);
                     });
