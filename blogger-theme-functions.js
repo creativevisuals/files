@@ -60,16 +60,17 @@ $(".header-inner-footer .scroll-down").on("click", function(e) {
         $('body').toggleClass('nav-active');
         $('.overlay').fadeToggle(170);
     });
-    $('.mobile-menu ul li .submenu-toggle').on('click', function($this) {
-        if ($(this).parent().hasClass('has-sub')) {
-            $this.preventDefault();
-            if (!$(this).parent().hasClass('show')) {
-                $(this).parent().addClass('show').children('.m-sub').slideToggle(170);
-            } else {
-                $(this).parent().removeClass('show').find('> .m-sub').slideToggle(170);
-            }
-        }
-    });
+$('.mobile-menu ul li.has-sub > a, .mobile-menu ul li .submenu-toggle').on('click', function(event) {
+    event.preventDefault(); // Impede o redirecionamento do link
+    var parentItem = $(this).parent(); // Seleciona o item pai
+
+    // Verifica se o submenu está expandido
+    if (!parentItem.hasClass('show')) {
+        parentItem.addClass('show').children('.m-sub').slideDown(170);
+    } else {
+        parentItem.removeClass('show').children('.m-sub').slideUp(170);
+    }
+});
     $('.Label a').attr('href', function($this, href) {
         return href.replace(href, href + '?&max-results=' + postPerPage);
     });
