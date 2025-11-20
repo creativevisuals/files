@@ -36,8 +36,8 @@ async function generateVideoJsonLd() {
           "publisher": { 
             "@type": "Organization", 
             "name": "Creative Visuals by Diogo Pessoa de Andrade", // Nome da marca unificado
-            "url": "https://www.diogo-andrade.com/", // Adiciona URL para resolver o aviso de autor/publisher
-            "address": { // Adiciona morada mínima para SEO local/validação
+            "url": "https://www.diogo-andrade.com/", // ADICIONADO: URL para resolver o aviso de autor/publisher
+            "address": { // ADICIONADO: Morada mínima para SEO local/validação
                 "@type": "PostalAddress",
                 "addressLocality": "Lisbon",
                 "addressCountry": "PT"
