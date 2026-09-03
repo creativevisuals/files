@@ -3,8 +3,8 @@
  *
  * Keeps the existing thumbnail-first lazy-load behaviour and creates a larger
  * internal iframe viewport so that YouTube is more likely to select 1080p on
- * desktop and 720p on mobile. YouTube still retains adaptive control and may
- * lower playback quality when connection or device conditions require it.
+ * desktop and mobile. YouTube still retains adaptive control and may lower
+ * playback quality when connection or device conditions require it.
  */
 (function () {
   "use strict";
@@ -81,41 +81,43 @@
         visualHeight * pixelRatio;
 
       /*
-       * Players com menos de 1000px usam o perfil mobile.
+       * Players com menos de 1000px podem precisar
+       * de uma ampliação superior.
        */
-      var isMobilePlayer =
+      var isCompactPlayer =
         visualWidth < 1000;
 
       /*
-       * Mobile: tenta obter 720p.
-       * Desktop: tenta obter 1080p.
+       * Alvo correspondente ao limiar que produziu
+       * 1080p nos testes.
        */
-      var targetEffectiveWidth =
-        isMobilePlayer ? 1280 : 1670;
-
-      var targetEffectiveHeight =
-        isMobilePlayer ? 720 : 940;
-
-      var maximumBoost =
-        isMobilePlayer ? 1.6 : 1.56;
+      var targetEffectiveWidth = 1670;
+      var targetEffectiveHeight = 940;
 
       /*
-       * Utiliza o maior fator necessário para atingir
-       * simultaneamente a largura e a altura pretendidas.
+       * Players compactos podem chegar a 2.35.
+       * Players maiores mantêm o limite de 1.56.
        */
-      var factor = Math.max(
+      var maximumBoost =
+        isCompactPlayer ? 2.35 : 1.56;
+
+      var requiredFactor = Math.max(
         targetEffectiveWidth / effectiveWidth,
         targetEffectiveHeight / effectiveHeight
       );
 
-      var shouldBoost =
-        factor > 1 &&
-        factor <= maximumBoost;
-
       /*
-       * Se o ecrã já tiver resolução suficiente ou se o
-       * aumento necessário for excessivo, remove o boost.
+       * Se o fator necessário exceder o limite,
+       * aplica o máximo em vez de cancelar o boost.
        */
+      var factor = Math.min(
+        requiredFactor,
+        maximumBoost
+      );
+
+      var shouldBoost =
+        factor > 1;
+
       if (!shouldBoost) {
         iframe.style.removeProperty("max-width");
         iframe.style.removeProperty("max-height");
@@ -123,6 +125,7 @@
         iframe.style.removeProperty("height");
         iframe.style.removeProperty("transform");
         iframe.style.removeProperty("transform-origin");
+
         container.style.removeProperty("overflow");
 
         return;
@@ -181,8 +184,8 @@
     }
 
     /*
-     * Aplica o boost antes de iniciar o carregamento
-     * do iframe do YouTube.
+     * Aplica o viewport aumentado antes de carregar
+     * o player do YouTube.
      */
     updateViewport();
 
