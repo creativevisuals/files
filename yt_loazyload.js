@@ -51,7 +51,6 @@
      * 1670x881 (panoramic video)  -> YouTube still selected 1280x676
      * 322x181 at DPR 2.63         -> YouTube selected 640x360 without boost
      */
-
     var animationFrame = null;
 
     function updateViewport() {
@@ -62,17 +61,28 @@
       }
 
       var visualWidth =
-        content.clientWidth || container.clientWidth;
+        content.clientWidth ||
+        container.clientWidth;
 
       var visualHeight =
-        content.clientHeight || container.clientHeight;
+        content.clientHeight ||
+        container.clientHeight;
 
       if (!visualWidth || !visualHeight) {
         return;
       }
 
-      var pixelRatio =
-        window.devicePixelRatio || 1;
+      /*
+       * Limita o DPR utilizado no cálculo.
+       *
+       * Alguns equipamentos Samsung comunicam um DPR muito elevado
+       * (por exemplo, 3.75), fazendo o cálculo concluir erradamente
+       * que o iframe já possui resolução interna suficiente.
+       */
+      var pixelRatio = Math.min(
+        window.devicePixelRatio || 1,
+        2.63
+      );
 
       var effectiveWidth =
         visualWidth * pixelRatio;
@@ -81,8 +91,9 @@
         visualHeight * pixelRatio;
 
       /*
-       * Players com menos de 1000px podem precisar
-       * de uma ampliação superior.
+       * Players com menos de 1000px podem precisar de uma
+       * ampliação superior, sobretudo em mobile e em vídeos
+       * panorâmicos.
        */
       var isCompactPlayer =
         visualWidth < 1000;
@@ -95,11 +106,11 @@
       var targetEffectiveHeight = 940;
 
       /*
-       * Players compactos podem chegar a 2.35.
+       * Players compactos podem chegar a 3.05.
        * Players maiores mantêm o limite de 1.56.
        */
       var maximumBoost =
-        isCompactPlayer ? 2.35 : 1.56;
+        isCompactPlayer ? 3.05 : 1.56;
 
       var requiredFactor = Math.max(
         targetEffectiveWidth / effectiveWidth,
@@ -108,7 +119,7 @@
 
       /*
        * Se o fator necessário exceder o limite,
-       * aplica o máximo em vez de cancelar o boost.
+       * aplica o máximo permitido.
        */
       var factor = Math.min(
         requiredFactor,
@@ -266,7 +277,7 @@
 
       logo.href =
         "https://youtu.be/" +
-        encodeURIComponent(videoId);
+        videoId;
 
       content.appendChild(logo);
     }
