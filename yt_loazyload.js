@@ -1,11 +1,10 @@
 /*
  * Creative Visuals — YouTube lazy-load player
  *
- * Keeps the existing thumbnail-first lazy-load behaviour and, on sufficiently
- * large players, creates a larger internal iframe viewport so that YouTube is
- * more likely to select a 1080p stream on standard-density desktop displays.
- * YouTube still retains adaptive control and may lower playback quality when
- * connection or device conditions require it.
+ * Keeps the existing thumbnail-first lazy-load behaviour and creates a larger
+ * internal iframe viewport so that YouTube is more likely to select 1080p on
+ * desktop and 720p on mobile. YouTube still retains adaptive control and may
+ * lower playback quality when connection or device conditions require it.
  */
 (function () {
   "use strict";
@@ -50,12 +49,9 @@
      * 1666x937 (factor 1.45)      -> YouTube selected 1920x1080
      * 1725x970 (factor 1.50)      -> YouTube selected 1920x1080
      * 1670x881 (panoramic video)  -> YouTube still selected 1280x676
+     * 322x181 at DPR 2.63         -> YouTube selected 640x360 without boost
      */
 
-    var targetEffectiveWidth = 1670;
-    var targetEffectiveHeight = 940;
-    var maximumBoost = 1.56;
-    var minimumVisualWidth = 1000;
     var animationFrame = null;
 
     function updateViewport() {
@@ -85,6 +81,25 @@
         visualHeight * pixelRatio;
 
       /*
+       * Players com menos de 1000px usam o perfil mobile.
+       */
+      var isMobilePlayer =
+        visualWidth < 1000;
+
+      /*
+       * Mobile: tenta obter 720p.
+       * Desktop: tenta obter 1080p.
+       */
+      var targetEffectiveWidth =
+        isMobilePlayer ? 1280 : 1670;
+
+      var targetEffectiveHeight =
+        isMobilePlayer ? 720 : 940;
+
+      var maximumBoost =
+        isMobilePlayer ? 1.6 : 1.56;
+
+      /*
        * Utiliza o maior fator necessário para atingir
        * simultaneamente a largura e a altura pretendidas.
        */
@@ -94,10 +109,13 @@
       );
 
       var shouldBoost =
-        visualWidth >= minimumVisualWidth &&
         factor > 1 &&
         factor <= maximumBoost;
 
+      /*
+       * Se o ecrã já tiver resolução suficiente ou se o
+       * aumento necessário for excessivo, remove o boost.
+       */
       if (!shouldBoost) {
         iframe.style.removeProperty("max-width");
         iframe.style.removeProperty("max-height");
@@ -105,6 +123,7 @@
         iframe.style.removeProperty("height");
         iframe.style.removeProperty("transform");
         iframe.style.removeProperty("transform-origin");
+        container.style.removeProperty("overflow");
 
         return;
       }
@@ -162,8 +181,8 @@
     }
 
     /*
-     * Aplica o viewport aumentado antes de iniciar
-     * o carregamento do YouTube.
+     * Aplica o boost antes de iniciar o carregamento
+     * do iframe do YouTube.
      */
     updateViewport();
 
@@ -194,7 +213,8 @@
   }
 
   function initialisePlayer(container) {
-    var videoId = container.dataset.id;
+    var videoId =
+      container.dataset.id;
 
     if (!videoId) {
       return;
