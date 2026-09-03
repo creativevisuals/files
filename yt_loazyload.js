@@ -1,1 +1,321 @@
-!function(){"use strict";var e=document.querySelectorAll(".yt-lazyload");if(e.length){var t=document.createElement("div"),r=document.createElement("div"),a=document.createElement("div"),o=document.createElement("a"),i=document.createElement("iframe");if(t.classList.add("yt-lazyload-wrap"),r.classList.add("yt-lazyload-content"),a.classList.add("yt-lazyload-playbtn"),o.classList.add("yt-lazyload-logo"),o.target="_blank",o.rel="noreferrer",i.setAttribute("allow","accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture"),i.setAttribute("allowfullscreen",""),"IntersectionObserver"in window){var n=new IntersectionObserver(function(e){e.forEach(function(e){e.isIntersecting&&(l(e.target),n.unobserve(e.target))})},{rootMargin:"200px 0px"});e.forEach(function(e){n.observe(e)})}else e.forEach(l)}function l(e){var n=e.dataset.id;if(n){var l=e.dataset.thumb,s=e.dataset.logo,d=e.dataset.playlist,c=t.cloneNode(!1),p=r.cloneNode(!1),y=a.cloneNode(!1);e.appendChild(c),c.appendChild(p);var u=l&&l.startsWith("http")?l:"https://i.ytimg.com/vi/"+n+(l||"")+"/maxresdefault.jpg";if(p.style.setProperty("--yt-lazyload-img",'url("'+u+'")'),p.appendChild(y),"0"!==s){var m=o.cloneNode(!1);m.href="https://youtu.be/"+encodeURIComponent(n),p.appendChild(m)}y.addEventListener("click",function(){var t=i.cloneNode(!1),r="autoplay=1&rel=0";d&&(r="list="+encodeURIComponent(d)+"&autoplay=1&rel=0"),t.title=e.getAttribute("aria-label")||"YouTube video player",p.appendChild(t),function e(t,r,a){var o=null;function i(){if(o=null,t.isConnected){var e=r.clientWidth||a.clientWidth,i=r.clientHeight||a.clientHeight;if(e&&i){var n,l=1670/(e*(window.devicePixelRatio||1));if(!(e>=1e3&&l>1&&l<=1.5)){t.style.removeProperty("max-width"),t.style.removeProperty("max-height"),t.style.removeProperty("width"),t.style.removeProperty("height"),t.style.removeProperty("transform"),t.style.removeProperty("transform-origin");return}a.style.setProperty("overflow","hidden","important"),t.style.setProperty("max-width","none","important"),t.style.setProperty("max-height","none","important"),t.style.setProperty("width",Math.round(e*l)+"px","important"),t.style.setProperty("height",Math.round(i*l)+"px","important"),t.style.setProperty("transform","scale("+1/l+")","important"),t.style.setProperty("transform-origin","0 0","important")}}}function n(){null!==o&&cancelAnimationFrame(o),o=requestAnimationFrame(i)}i(),"ResizeObserver"in window&&new ResizeObserver(n).observe(r),window.addEventListener("resize",n,{passive:!0}),document.addEventListener("fullscreenchange",n),document.addEventListener("webkitfullscreenchange",n)}(t,p,e),t.src="https://www.youtube.com/embed/"+encodeURIComponent(n)+"?"+r},{once:!0})}}}();
+/*
+ * Creative Visuals — YouTube lazy-load player
+ *
+ * Keeps the existing thumbnail-first lazy-load behaviour and, on sufficiently
+ * large players, creates a larger internal iframe viewport so that YouTube is
+ * more likely to select a 1080p stream on standard-density desktop displays.
+ * YouTube still retains adaptive control and may lower playback quality when
+ * connection or device conditions require it.
+ */
+(function () {
+  "use strict";
+
+  var players = document.querySelectorAll(".yt-lazyload");
+
+  if (!players.length) {
+    return;
+  }
+
+  var wrapTemplate = document.createElement("div");
+  var contentTemplate = document.createElement("div");
+  var playTemplate = document.createElement("div");
+  var logoTemplate = document.createElement("a");
+  var iframeTemplate = document.createElement("iframe");
+
+  wrapTemplate.classList.add("yt-lazyload-wrap");
+  contentTemplate.classList.add("yt-lazyload-content");
+  playTemplate.classList.add("yt-lazyload-playbtn");
+  logoTemplate.classList.add("yt-lazyload-logo");
+
+  logoTemplate.target = "_blank";
+  logoTemplate.rel = "noreferrer";
+
+  iframeTemplate.setAttribute(
+    "allow",
+    "accelerometer;autoplay;encrypted-media;gyroscope;picture-in-picture"
+  );
+
+  iframeTemplate.setAttribute("allowfullscreen", "");
+
+  function applyQualityViewportBoost(
+    iframe,
+    content,
+    container
+  ) {
+    /*
+     * Test results on the live site:
+     *
+     * 1150x647                    -> YouTube selected 1280x720
+     * 1609x905 (factor 1.40)      -> YouTube still selected 1280x720
+     * 1666x937 (factor 1.45)      -> YouTube selected 1920x1080
+     * 1725x970 (factor 1.50)      -> YouTube selected 1920x1080
+     * 1670x881 (panoramic video)  -> YouTube still selected 1280x676
+     */
+
+    var targetEffectiveWidth = 1670;
+    var targetEffectiveHeight = 940;
+    var maximumBoost = 1.56;
+    var minimumVisualWidth = 1000;
+    var animationFrame = null;
+
+    function updateViewport() {
+      animationFrame = null;
+
+      if (!iframe.isConnected) {
+        return;
+      }
+
+      var visualWidth =
+        content.clientWidth || container.clientWidth;
+
+      var visualHeight =
+        content.clientHeight || container.clientHeight;
+
+      if (!visualWidth || !visualHeight) {
+        return;
+      }
+
+      var pixelRatio =
+        window.devicePixelRatio || 1;
+
+      var effectiveWidth =
+        visualWidth * pixelRatio;
+
+      var effectiveHeight =
+        visualHeight * pixelRatio;
+
+      /*
+       * Utiliza o maior fator necessário para atingir
+       * simultaneamente a largura e a altura pretendidas.
+       */
+      var factor = Math.max(
+        targetEffectiveWidth / effectiveWidth,
+        targetEffectiveHeight / effectiveHeight
+      );
+
+      var shouldBoost =
+        visualWidth >= minimumVisualWidth &&
+        factor > 1 &&
+        factor <= maximumBoost;
+
+      if (!shouldBoost) {
+        iframe.style.removeProperty("max-width");
+        iframe.style.removeProperty("max-height");
+        iframe.style.removeProperty("width");
+        iframe.style.removeProperty("height");
+        iframe.style.removeProperty("transform");
+        iframe.style.removeProperty("transform-origin");
+
+        return;
+      }
+
+      container.style.setProperty(
+        "overflow",
+        "hidden",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "max-width",
+        "none",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "max-height",
+        "none",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "width",
+        Math.round(visualWidth * factor) + "px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "height",
+        Math.round(visualHeight * factor) + "px",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "transform",
+        "scale(" + 1 / factor + ")",
+        "important"
+      );
+
+      iframe.style.setProperty(
+        "transform-origin",
+        "0 0",
+        "important"
+      );
+    }
+
+    function scheduleUpdate() {
+      if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      animationFrame =
+        requestAnimationFrame(updateViewport);
+    }
+
+    /*
+     * Aplica o viewport aumentado antes de iniciar
+     * o carregamento do YouTube.
+     */
+    updateViewport();
+
+    if ("ResizeObserver" in window) {
+      var resizeObserver =
+        new ResizeObserver(scheduleUpdate);
+
+      resizeObserver.observe(content);
+    }
+
+    window.addEventListener(
+      "resize",
+      scheduleUpdate,
+      {
+        passive: true
+      }
+    );
+
+    document.addEventListener(
+      "fullscreenchange",
+      scheduleUpdate
+    );
+
+    document.addEventListener(
+      "webkitfullscreenchange",
+      scheduleUpdate
+    );
+  }
+
+  function initialisePlayer(container) {
+    var videoId = container.dataset.id;
+
+    if (!videoId) {
+      return;
+    }
+
+    var customThumbnail =
+      container.dataset.thumb;
+
+    var showLogo =
+      container.dataset.logo;
+
+    var playlistId =
+      container.dataset.playlist;
+
+    var wrap =
+      wrapTemplate.cloneNode(false);
+
+    var content =
+      contentTemplate.cloneNode(false);
+
+    var playButton =
+      playTemplate.cloneNode(false);
+
+    container.appendChild(wrap);
+    wrap.appendChild(content);
+
+    var thumbnailUrl =
+      customThumbnail &&
+      customThumbnail.startsWith("http")
+        ? customThumbnail
+        : "https://i.ytimg.com/vi/" +
+          videoId +
+          (customThumbnail || "") +
+          "/maxresdefault.jpg";
+
+    content.style.setProperty(
+      "--yt-lazyload-img",
+      'url("' + thumbnailUrl + '")'
+    );
+
+    content.appendChild(playButton);
+
+    if (showLogo !== "0") {
+      var logo =
+        logoTemplate.cloneNode(false);
+
+      logo.href =
+        "https://youtu.be/" +
+        encodeURIComponent(videoId);
+
+      content.appendChild(logo);
+    }
+
+    playButton.addEventListener(
+      "click",
+      function () {
+        var iframe =
+          iframeTemplate.cloneNode(false);
+
+        var query =
+          "autoplay=1&rel=0";
+
+        if (playlistId) {
+          query =
+            "list=" +
+            encodeURIComponent(playlistId) +
+            "&autoplay=1&rel=0";
+        }
+
+        iframe.title =
+          container.getAttribute("aria-label") ||
+          "YouTube video player";
+
+        content.appendChild(iframe);
+
+        /*
+         * Primeiro aumenta o viewport interno.
+         */
+        applyQualityViewportBoost(
+          iframe,
+          content,
+          container
+        );
+
+        /*
+         * Só depois inicia o carregamento do YouTube.
+         */
+        iframe.src =
+          "https://www.youtube.com/embed/" +
+          encodeURIComponent(videoId) +
+          "?" +
+          query;
+      },
+      {
+        once: true
+      }
+    );
+  }
+
+  if ("IntersectionObserver" in window) {
+    var observer =
+      new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) {
+              return;
+            }
+
+            initialisePlayer(entry.target);
+            observer.unobserve(entry.target);
+          });
+        },
+        {
+          rootMargin: "200px 0px"
+        }
+      );
+
+    players.forEach(function (player) {
+      observer.observe(player);
+    });
+  } else {
+    players.forEach(initialisePlayer);
+  }
+})();
